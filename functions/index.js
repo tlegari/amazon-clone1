@@ -18,17 +18,25 @@ app.use(express.json());
 app.get('/', (req, res) => res.status(200).send('Hello World'))
 
 app.post('/payments/create', async (req, res) => {
-    const total = req.query.total
+    const total = parseInt(req.body.total, 10); 
 
-    console.log('payment request recieved', total);
+    if (!total) {
+      return res.status(400).json({ error: "Missing total amount" }); 
+    }
 
-    const paymentIntent = await stripe .paymentIntents.create({
-        amount: total,
-        currency: 'usd',
-    });
+    console.log('Payment request received for:', total);
 
-    res.status(201).send({ clientSecret: paymentIntent.create.client_secret })
+    try {
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: total,
+            currency: 'usd',
+        });
+
+        res.status(201).json({ clientSecret: paymentIntent.client_secret });
+    } catch (error) {
+        console.error("Stripe Payment Error:", error);
+        res.status(500).json({ error: error.message });
+    }
 })
-//listen command
 
 exports.api = functions.https.onRequest(app)
